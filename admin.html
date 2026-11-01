@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="lo"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>APEX MOTO · ແອັດມິນ</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&display=swap" rel="stylesheet">
+<!-- Barcode Generator Library -->
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+<style>
+body{font-family:'Noto Sans Lao',sans-serif}nav::-webkit-scrollbar{display:none}
+@media print {
+  body * { visibility: hidden; }
+  #receipt-print-area, #receipt-print-area * { visibility: visible; }
+  #receipt-print-area { 
+    position: absolute; 
+    left: 0; 
+    top: 0; 
+    width: 80mm; 
+    font-size: 12px; 
+    color: #000; 
+  }
+  @page {
+    size: 80mm auto;
+    margin: 0;
+  }
+  body {
+    margin: 0;
+  }
+}
+</style></head>
+<body class="bg-gray-50 text-gray-800">
+<div class="md:flex min-h-screen">
+ <aside class="md:w-60 md:shrink-0 bg-white border-b md:border-b-0 md:border-r md:h-screen md:sticky md:top-0">
+  <div class="px-4 py-3 flex items-center justify-between md:block"><h1 class="font-bold text-lg">APEX<span class="text-emerald-500">MOTO</span> <span class="text-xs text-gray-400">Admin</span></h1><a href="index.html" class="text-xs text-emerald-700 font-bold md:block md:mt-1">← ໜ້າຮ້ານ</a></div>
+  <nav id="nav" class="hidden md:flex md:flex-col gap-1 px-3"></nav>
+ </aside>
+ <main class="flex-1 p-4 pb-24 md:p-6 md:pb-6 w-full max-w-6xl">
+  <div id="m"></div>
+ </main>
+</div>
+<nav id="bnav" class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t z-30 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-around"></nav>
+
+<!-- โหลดไฟล์ระบบกลาง shared.js -->
+<script src="shared.js"></script>
+
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let v='menu',ed=null,fc='',fq='',ot='all',fl=false,cc=null;
+
+const CH=()=>db.get('apx_chat',{}),
+ unA=c=>c.msgs.filter(m=>m.f==='c'&&!m.r).length,
+ tm=x=>new Date(x).toLocaleString([],{hour:'2-digit',minute:'2-digit',day:'2-digit',month:'2-digit'}),
+ bubA=m=>`<div class="flex ${m.f==='a'?'justify-end':''}"><div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.f==='a'?'bg-emerald-600 text-white':'bg-gray-100'}"><p class="whitespace-pre-wrap break-words">${esc(m.t)}</p><span class="block text-[10px] mt-0.5 ${m.f==='a'?'text-emerald-100':'text-gray-400'}">${tm(m.at)}</span></div></div>`,
+ cdOf=x=>x.cd||(P().find(p=>p.id===x.id)||{}).code||'',
+ P=()=>db.get(K.p,P0),
+ O=()=>db.get('apx_orders',[]),
+ nid=a=>a.length?Math.max(...a.map(x=>x.id))+1:1,
+ tx=x=>typeof x==='string'?x:(x&&(x.lo||x.en))||'',
+ cn=k=>CATS()[k]||k,
+ kip=n=>'₭'+(+n||0).toLocaleString('en-US'),
+ ST=['ສັ່ງແລ້ວ','ຖ້າດຳເນີນການ','ກຳລັງແພັກ','ກຳລັງຈັດສົ່ງ','ສຳເລັດ'],
+ sx=o=>o.v===2?o.st:[0,2,3,4][typeof o.st==='number'?o.st:1],
+ lowP=p=>(p.stock??0)<=(p.low||7),
+ G1='bg-emerald-600 text-white',
+ G2='bg-gray-100 text-gray-600',
+ f=(id,l,val='',ty='text',c='')=>`<label class="block text-xs text-gray-500 ${c}">${l}<input id="${id}" type="${ty}" value="${esc(val)}" class="w-full border rounded-xl p-2.5 text-sm text-gray-800 mt-1 bg-white"></label>`,
+ ta=(id,l,val='',c='')=>`<label class="block text-xs text-gray-500 ${c}">${l}<textarea id="${id}" rows="3" class="w-full border rounded-xl p-2.5 text-sm text-gray-800 mt-1 bg-white">${esc(val)}</textarea></label>`,
+ cs=val=>`<label class="block text-xs text-gray-500">ໝວດໝູ່<select id="cat" class="w-full border rounded-xl p-2.5 text-sm text-gray-800 mt-1 bg-white">${Object.keys(CATS()).map(k=>`<option value="${k}" ${val===k?'selected':''}>${cn(k)}</option>`).join('')}</select></label>`,
+ B=(c,l,fn)=>`<button onclick="${fn}" class="${c} text-xs font-bold px-3 py-2 rounded-lg">${l}</button>`,
+ head=(t,r='')=>`<div class="flex items-center justify-between mb-4"><h2 class="font-bold text-lg">${t}</h2>${r}</div>`,
+ sub=(t,go2)=>`<div class="flex items-center gap-3 mb-4"><button onclick="go('${go2}')" class="text-xl" aria-label="back">←</button><h2 class="font-bold text-lg">${t}</h2></div>`,
+ none='<p class="text-sm text-gray-400 text-center py-10">ບໍ່ມີຂໍ້ມູນ</p>',
+ pill=(on,fn,l)=>`<button onclick="${fn}" class="whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-bold ${on?'bg-emerald-600 text-white':'bg-white border text-gray-600'}">${l}</button>`;
+
+function ask(m,fn,one){
+  const d=document.createElement('div');
+  d.className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4';
+  d.innerHTML=`<div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl"><p class="text-sm mb-5">${esc(m)}</p><div class="flex gap-2 justify-end">${one?'':'<button id="dn" class="px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 text-gray-600">ຍົກເລີກ</button>'}<button id="dy" class="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white">${one?'ຕົກລົງ':'ຢືນຢັນ'}</button></div></div>`;
+  document.body.appendChild(d);
+  const x=()=>d.remove();
+  d.querySelector('#dy').onclick=()=>{x();fn&&fn()};
+  if(!one)d.querySelector('#dn').onclick=x;
+}
+
+function go(x,id=null){v=x;ed=id;show();scrollTo(0,0)}
+
+function show(){
+  const on=k=>v===k,
+  it=[['menu','table-cells-large','ເມນູຫຼັກ','ເມນູຫຼັກ'],['products','box-open','ສິນຄ້າ','ສິນຄ້າ'],['cats','shapes','ໝວດໝູ່','ໝວດໝູ່'],['orders','truck-fast','ຄຳສັ່ງຊື້','ຄຳສັ່ງຊື້'],['chat','comments','ແຊັດລູກຄ້າ','ແຊັດ']];
+  $('#nav').innerHTML=it.map(([k,i,l])=>`<button onclick="nv('${k}')" class="whitespace-nowrap px-3 py-2 rounded-xl text-sm font-bold flex items-center gap-2 ${on(k)?'bg-emerald-600 text-white':'text-gray-600 hover:bg-gray-100'}"><i class="fa-solid fa-${i} w-5"></i>${l}</button>`).join('');
+  $('#bnav').innerHTML=it.filter(x=>x[3]).map(([k,i,l,sh])=>`<button onclick="nv('${k}')" class="flex flex-col items-center w-16 text-[10px] ${on(k)?'text-emerald-600 font-bold':'text-gray-400'}"><i class="fa-solid fa-${i} text-lg"></i>${sh}</button>`).join('');
+  $('#m').innerHTML=VV[v]();
+  const am=$('#amsgs');if(am)am.scrollTop=am.scrollHeight;
+}
+
+function nv(k){fl=false;fc='';fq='';cc=null;if(k==='orders')ot='all';go(k)}
+
+const VV={
+chat(){
+  const a=CH(),last=k=>a[k].msgs[a[k].msgs.length-1].at,ks=Object.keys(a).filter(k=>a[k].msgs.length).sort((x,y)=>last(y)-last(x)),c=cc&&a[cc];
+  if(c&&unA(c)){c.msgs.forEach(m=>{if(m.f==='c')m.r=1});db.set('apx_chat',a)}
+  const list=ks.length?ks.map(k=>{const x=a[k],l=x.msgs[x.msgs.length-1],n=unA(x);return `<button data-k="${esc(k)}" onclick="cc=this.dataset.k;show()" class="w-full text-left rounded-xl p-3 flex items-center gap-3 ${k===cc?'bg-emerald-50':'hover:bg-gray-50'}"><span class="w-10 h-10 shrink-0 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">${esc((x.name||k)[0]).toUpperCase()}</span><span class="flex-1 min-w-0"><b class="block text-sm truncate">${esc(x.name||k)}</b><span class="block text-xs text-gray-400 truncate">${esc(l.t)}</span></span>${n?`<span class="text-xs font-bold bg-emerald-600 text-white rounded-full px-2 py-0.5">${n}</span>`:''}</button>`}).join(''):none,
+  th=c?`<div class="px-4 py-3 border-b flex items-center gap-3"><button onclick="cc=null;show()" class="md:hidden text-xl" aria-label="back">←</button><div><b class="text-sm">${esc(c.name||cc)}</b><p class="text-xs text-gray-400">${esc(cc)}</p></div></div><div id="amsgs" class="flex-1 overflow-y-auto p-4 space-y-2">${c.msgs.map(bubA).join('')}</div><div class="p-3 border-t flex gap-2"><input id="ain" onkeydown="if(event.key==='Enter')sendA()" placeholder="ພິມຂໍ້ຄວາມຕອບລູກຄ້າ..." class="flex-1 border rounded-xl px-3 py-2 text-sm"><button onclick="sendA()" aria-label="send" class="bg-emerald-600 text-white px-4 rounded-xl"><i class="fa-solid fa-paper-plane"></i></button></div>`:`<div class="flex-1 items-center justify-center text-sm text-gray-400 hidden md:flex">ເລືອກການສົນທະນາ</div>`;
+  return head('ແຊັດລູກຄ້າ')+`<div class="bg-white border rounded-2xl overflow-hidden flex h-[calc(100vh-15rem)] md:h-[calc(100vh-11rem)]"><div class="${c?'hidden md:block':''} w-full md:w-80 md:shrink-0 md:border-r overflow-y-auto p-2 space-y-1">${list}</div><div class="${c?'flex':'hidden md:flex'} flex-1 min-w-0 flex-col">${th}</div></div>`;
+},
+
+menu(){
+  const a=P(),o=O(),ip=o.filter(x=>sx(x)<4),low=a.filter(lowP).length,bl=o.filter(x=>sx(x)===4).length,ch=Object.values(CH()).reduce((n,c)=>n+unA(c),0),
+  chip=(t,c='bg-gray-100 text-gray-600')=>`<span class="text-xs font-bold px-2 py-0.5 rounded-full ${c}">${t}</span>`,
+  row=(i,t,r,fn)=>`<button onclick="${fn}" class="w-full flex items-center gap-3 py-3 border-b last:border-0 text-left"><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-${i}"></i></span><span class="flex-1 text-sm font-bold">${t}</span>${r}<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></button>`,
+  sec=(t,r,b)=>`<section class="bg-white border rounded-2xl p-4"><div class="flex items-center justify-between mb-3"><h3 class="font-bold">${t}</h3>${r}</div>${b}</section>`,
+  st=(n,l,fn)=>`<button onclick="${fn}" class="flex-1 py-3 text-center"><b class="block text-2xl ${l==='ໃກ້ໝົດສະຕ໋ອກ'&&n?'text-red-600':''}">${n}</b><span class="text-[11px] text-gray-500">${l}</span></button>`;
+  return `<div class="grid gap-4 lg:grid-cols-2"><div class="lg:col-span-2 rounded-2xl bg-emerald-50 border border-emerald-100 p-4"><h2 class="font-bold mb-3">ສະຖານະຮ້ານຄ້າ APEX MOTO</h2><div class="flex bg-white rounded-xl divide-x">${st(ip.length,'ກຳລັງດຳເນີນການ',"ot='all';go('orders')")}${st(low,'ໃກ້ໝົດສະຕ໋ອກ',"fl=true;fc='';go('products')")}${st(bl,'ສຳເລັດແລ້ວ',"ot='4';go('orders')")}</div></div>
+  ${sec('ຈັດການສິນຄ້າ ແລະ ສາງ','',`<button onclick="go('pform')" class="w-full bg-emerald-600 text-white rounded-2xl p-4 flex items-center gap-3 mb-2 text-left"><span class="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center"><i class="fa-solid fa-plus"></i></span><span class="flex-1"><b class="block">ລົງຂາຍສິນຄ້າໃໝ່</b><span class="text-xs opacity-80">ເພີ່ມຮູບ ລາຄາ ແລະ ສະຕ໋ອກ</span></span><i class="fa-solid fa-arrow-right"></i></button><button onclick="nv('products')" class="w-full flex items-center gap-3 py-3 border-b last:border-0 text-left"><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-list"></i></span><span class="flex-1 text-sm font-bold">ລາຍການສິນຄ້າທັງໝົດ</span><span class="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">${a.length} ລາຍການ</span><i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></button><button onclick="fl=true;fc='';go('products')" class="w-full flex items-center gap-3 py-3 border-b last:border-0 text-left"><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></span><span class="flex-1 text-sm font-bold">ຈັດການສະຕ໋ອກ ແລະ ແຈ້ງເຕືອນໃກ້ໝົດ</span>${low?`<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">ເຕືອນ ${low}</span>`:''}<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></button><button onclick="go('cats')" class="w-full flex items-center gap-3 py-3 border-b last:border-0 text-left"><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-shapes"></i></span><span class="flex-1 text-sm font-bold">ໝວດໝູ່ສິນຄ້າ</span><i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></button>`)}
+  ${sec('ຄຳສັ່ງຊື້ ແລະ ການຈັດສົ່ງ','',`<div class="grid grid-cols-2 gap-3">${[0,1,2,3,4].map(k=>`<button onclick="ot='${k}';go('orders')" class="border rounded-2xl p-3 text-left"><div class="flex justify-between items-start"><span class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-${['cart-shopping','hourglass-half','box','truck','flag'][k]}"></i></span>${chip(o.filter(x=>sx(x)===k).length,'bg-amber-50 text-amber-700')}</div><b class="block text-sm mt-2">${ST[k]}</b></button>`).join('')}</div>`)}
+  ${sec('ບໍລິການລູກຄ້າ','',row('comments','ແຊັດລູກຄ້າ',ch?chip(ch+' ໃໝ່','bg-emerald-100 text-emerald-700'):'',"go('chat')"))}</div>`;
+},
+
+cats(){
+  const cs_map=CATS(),a=P();
+  return head('ໝວດໝູ່ສິນຄ້າ',B(G1,'+ ເພີ່ມໝວດໝູ່','addCatPrompt()'))+`<div class="grid gap-2 lg:grid-cols-2">${Object.entries(cs_map).map(([k,name])=>`<div class="bg-white border rounded-2xl p-4 flex items-center justify-between"><div><b class="text-sm">${esc(name)}</b><p class="text-xs text-gray-400">Key: ${esc(k)} · ${a.filter(p=>p.cat===k).length} ລາຍການ</p></div>${B('bg-red-50 text-red-600','ລຶບ',`delCat('${k}')`)}</div>`).join('')}</div>`;
+},
+
+products(){
+  const a=P(),q=fq.toLowerCase(),l=a.filter(p=>(!fc||p.cat===fc)&&(!fl||lowP(p))&&(tx(p.n)+p.code).toLowerCase().includes(q)),
+  row=p=>{const lw=p.low||7,s=p.stock??0;return `<div class="bg-white border rounded-2xl p-3 flex items-center gap-3"><div class="w-14 h-14 rounded-xl bg-gray-100 overflow-hidden shrink-0">${p.img?`<img src="${esc(p.img)}" class="w-full h-full object-cover">`:''}</div><div class="flex-1 min-w-0"><b class="block truncate text-sm">${esc(tx(p.n))}</b><span class="text-xs text-gray-400">${esc(p.code)} · ${kip(p.price)}</span><span class="block text-xs text-gray-500">ສະຕ໋ອກ ${s} · ເຕືອນທີ່ ≤ ${lw}${s<=lw?' <b class="text-amber-700 bg-amber-100 rounded-full px-2 ml-1">ໃກ້ໝົດ</b>':''}</span></div><div class="flex flex-col sm:flex-row gap-1.5">${B(G2,'ແກ້ໄຂ',`go('pform',${p.id})`)}${B('bg-red-50 text-red-600','ລຶບ',`del(${p.id})`)}</div></div>`};
+  return head('ລາຍການສິນຄ້າທັງໝົດ',B(G1,'+ ເພີ່ມ',"go('pform')"))+`<div class="flex flex-col sm:flex-row gap-2 mb-3"><input value="${esc(fq)}" onchange="fq=this.value;show()" placeholder="ຄົ້ນຫາຊື່ ຫຼື ລະຫັດສິນຄ້າ" class="w-full sm:max-w-sm border rounded-xl px-3 py-2 text-sm bg-white"><select onchange="fc=this.value;show()" class="border rounded-xl px-3 py-2 text-sm bg-white">${['',...Object.keys(CATS())].map(k=>`<option value="${k}" ${fc===k?'selected':''}>${k?cn(k):'ທັງໝົດ'} (${a.filter(p=>!k||p.cat===k).length})</option>`).join('')}</div>${fl?`<button onclick="fl=false;show()" class="mb-3 text-xs font-bold bg-red-50 text-red-700 rounded-full px-3 py-1.5">ສະແດງສະເພາະໃກ້ໝົດ ✕</button>`:''}`+
+  (l.length?Object.keys(CATS()).map(k=>[k,l.filter(p=>p.cat===k)]).filter(x=>x[1].length).map(([k,g])=>`<details ${g.length<=5||fc?'open':''} class="mb-4"><summary class="cursor-pointer font-bold flex items-center gap-2 py-2">${cn(k)}<span class="text-xs bg-gray-200 rounded-full px-2 py-0.5">${g.length}</span></summary><div class="grid gap-2 lg:grid-cols-2">${g.map(row).join('')}</div></details>`).join(''):none);
+},
+
+pform(){
+  const e=P().find(x=>x.id===ed)||{},c3='col-span-2 md:col-span-3';
+  return sub(ed?'ແກ້ໄຂສິນຄ້າ':'ລົງຂາຍສິນຄ້າໃໝ່','products')+`<div class="bg-white border rounded-2xl p-4 md:p-6 space-y-4 max-w-3xl">
+   <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-3">
+     <i class="fa-solid fa-barcode text-emerald-600 text-xl"></i>
+     <div class="flex-1">
+       <b class="block text-xs text-emerald-800">ສະແກນບາໂຄ້ດເພື່ອເພີ່ມ/ດຶງຂໍ້ມູນສິນຄ້າ</b>
+       <input id="scanner-input" onkeydown="if(event.key==='Enter'){handleAdminScan(this.value);this.value=''}" placeholder="ຄິກບ່ອນນີ້ແລ້ວສະແກນບາໂຄ້ດ..." class="w-full border rounded-lg px-3 py-1.5 text-sm mt-1 bg-white outline-none focus:ring-1 ring-emerald-500">
+     </div>
+   </div>
+   <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+     ${f('code','ລະຫັດສິນຄ້າ',e.code)}
+     ${cs(e.cat)}
+     ${f('price','ລາຄາ (₭)',e.price,'number')}
+     ${f('badge','ປ້າຍສິນຄ້າ (Badge)',e.badge)}
+     ${f('stock','ສະຕ໋ອກ',e.stock,'number')}
+     ${f('low','ແຈ້ງເຕືອນເມື່ອເຫຼືອ ≤ (ເວັ້ນວ່າງ = 7)',e.low,'number')}
+     ${f('sold','ຂາຍແລ້ວ',e.sold,'number')}
+     ${f('name','ຊື່ສິນຄ້າ',tx(e.n),'text',c3)}
+     ${ta('desc','ລາຍລະອຽດ',tx(e.d),c3)}
+     <label class="${c3} block text-xs text-gray-500">ຮູບພາບ<input id="img" type="file" accept="image/*" class="block text-xs mt-1">${e.img?`<img src="${esc(e.img)}" class="w-20 h-20 object-cover rounded-xl mt-2">`:''}</label>
+     <div class="${c3} flex gap-2">${B(G1,'ບັນທຶກ','sv()')}${B(G2,'ຍົກເລີກ',"go('products')")}</div>
+   </div>
+ </div>`;
+},
+
+orders(){
+  const m=O().map((o,i)=>({o,i})),l=m.filter(x=>ot==='all'||sx(x.o)===+ot);
+  return head('ຄຳສັ່ງຊື້')+`<div class="flex gap-2 overflow-x-auto pb-2 mb-3">${[['all','ທັງໝົດ',m.length],...ST.map((s,k)=>[String(k),s,m.filter(x=>sx(x.o)===k).length])].map(([k,n,c])=>pill(ot===k,`ot='${k}';show()`,`${n} (${c})`)).join('')}</div>`+
+  (l.length?`<div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">${l.map(({o,i})=>{
+    const s=sx(o);
+    const act = s<4 ? B(G1,'ປ່ຽນເປັນ: '+ST[s+1],`nx(${i})`) : '';
+    const printBtn = `<button onclick="printOrderReceipt(${i})" class="px-3 py-2 bg-slate-900 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1"><i class="fa-solid fa-print"></i> ພິມບິນ</button>`;
+    return bill(o, `<div class="flex items-center gap-2">${printBtn}${act}</div>`, i);
+  }).join('')}</div>`:none);
+}
+};
+
+function handleAdminScan(codeText) {
+  const codeTrim = codeText.trim();
+  if(!codeTrim) return;
+  const existing = P().find(p => p.code && p.code.toLowerCase() === codeTrim.toLowerCase());
+  if(existing) {
+    ed = existing.id;
+    show();
+    setTimeout(() => { alert(`พบสินค้าเดิมในระบบ: ${tx(existing.n)} - โหลดข้อมูลมาให้แล้ว`); }, 50);
+  } else {
+    const codeIn = $('#code');
+    if(codeIn) codeIn.value = codeTrim;
+    alert(`สแกนรหัสใหม่: ${codeTrim} - นำไปใส่ในช่องรหัสสินค้าให้แล้ว`);
+  }
+}
+
+function bill(o,act,i){
+  const g=x=>typeof x==='string'?x:(x&&(x.lo||x.en))||'';
+  return `<div class="bg-white border rounded-2xl p-4 text-sm"><div class="flex justify-between items-start"><div><b>#${esc(o.no)}</b><p class="text-xs text-gray-400">${esc(o.at)}</p></div><span class="bg-emerald-50 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">${ST[sx(o)]}</span></div>
+  <div class="mt-2 space-y-1 text-xs text-gray-600"><p><i class="fa-regular fa-user w-4"></i> ${esc(o.cu||'-')} · ${esc(o.ct||'-')}</p><p><i class="fa-solid fa-location-dot w-4"></i> ${esc(g(o.addr[2]))} · ${esc(g(o.addr[1]))} · ${esc(g(o.addr[0]))}</p><p><i class="fa-solid fa-box w-4"></i> ${o.items.map(x=>esc(tx(x.n))+(cdOf(x)?' ['+esc(cdOf(x))+']':'')+' ×'+x.q).join(', ')}</p><p><i class="fa-solid fa-truck w-4"></i> ${esc(CAR[o.c])} · <span class="font-mono">${esc(o.trk)}</span></p>${o.dn?`<p><i class="fa-solid fa-flag w-4"></i> ສົ່ງສຳເລັດເມື່ອ ${esc(o.dn)}</p>`:''}${o.nt?`<p><i class="fa-solid fa-note-sticky w-4"></i> ${esc(o.nt)}</p>`:''}</div>
+  <div class="border-t mt-3 pt-3 flex items-center justify-between gap-2"><div><span class="text-[10px] text-gray-400 block">${o.pay==='cod'?'ເກັບເງິນປາຍທາງ (COD)':'BCEL OnePay QR'}</span><b class="text-emerald-700">${kip(o.total)}</b></div><div class="flex gap-1.5">${act}</div></div></div>`;
+}
+
+function printOrderReceipt(index) {
+  const orders = db.get('apx_orders', []);
+  const order = orders[index];
+  if(!order) return;
+
+  const receiptHTML = `
+    <div id="receipt-print-area" style="padding:10px; font-family:monospace; width:80mm;">
+      <div style="text-align:center; font-weight:bold; font-size:16px;">APEX MOTO</div>
+      <div style="text-align:center; font-size:11px; margin-bottom:5px;">ຮ້ານອາໄຫຼ່ ແລະ ອຸປະກອນມໍເຕີໄຊ</div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="font-size:12px;">ເລກທີ: #${order.no}</div>
+      <div style="font-size:12px;">ວັນທີ: ${order.at}</div>
+      <div style="font-size:12px;">ລູກຄ້າ: ${esc(order.cu)} (${esc(order.ct)})</div>
+      <div style="font-size:12px;">ຂົນສົ່ງ: ${CAR[order.c]} (${esc(order.addr[0])} › ${esc(order.addr[1])} › ${esc(order.addr[2])})</div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <table style="width:100%; font-size:12px; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid #000;">
+            <th style="text-align:left; padding:3px 0;">ລາຍການ</th>
+            <th style="text-align:center; padding:3px 0;">ຈຳນວນ</th>
+            <th style="text-align:right; padding:3px 0;">ລາຄາ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${order.items.map(item => `
+            <tr>
+              <td style="padding:3px 0;">${esc(tx(item.n))}</td>
+              <td style="text-align:center; padding:3px 0;">x${item.q}</td>
+              <td style="text-align:right; padding:3px 0;">${kip(item.pr * item.q)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ຄ່າສິນຄ້າ:</span><span>${kip(order.total - 15000)}</span></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ຄ່າຈັດສົ່ງ:</span><span>${kip(15000)}</span></div>
+      <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:3px;"><span>ລວມທັງໝົດ:</span><span>${kip(order.total)}</span></div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="text-align:center; font-size:11px; margin-top:8px;">ຂອບໃຈທີ່ໃຊ້ບໍລິການ APEX MOTO</div>
+    </div>
+  `;
+
+  const container = document.createElement('div');
+  container.innerHTML = receiptHTML;
+  document.body.appendChild(container);
+  window.print();
+  document.body.removeChild(container);
+}
+
+function nx(i){
+  const a=O(),s=sx(a[i]);
+  if(s>=4)return;
+  a[i].st=s+1;a[i].v=2;
+  if(s+1===4)a[i].dn=new Date().toLocaleString();
+  db.set('apx_orders',a);
+  show();
+}
+
+function rz(file,cb){
+  const r=new FileReader();
+  r.onload=()=>{
+    const im=new Image();
+    im.onload=()=>{
+      const k=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement('canvas');
+      c.width=im.width*k;c.height=im.height*k;
+      c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+      cb(c.toDataURL('image/jpeg',.8));
+    };
+    im.src=r.result;
+  };
+  r.readAsDataURL(file);
+}
+
+function sv(){
+  const file=$('#img').files[0],old=(P().find(x=>x.id===ed)||{}).img||'',
+  fin=im=>{
+    const a=P(),p={id:ed||nid(a),code:$('#code').value.trim(),cat:$('#cat').value,price:+$('#price').value||0,badge:$('#badge').value.trim(),stock:Math.max(0,+$('#stock').value||0),low:Math.max(0,+$('#low').value||0),sold:Math.max(0,+$('#sold').value||0),img:im,n:$('#name').value.trim(),d:$('#desc').value.trim()};
+    if(!p.code||!p.n)return ask('ກະລຸນາໃສ່ລະຫັດ ແລະ ຊື່ສິນຄ້າ',null,1);
+    ed?a[a.findIndex(x=>x.id===ed)]=p:a.push(p);
+    db.set(K.p,a);
+    go('products');
+  };
+  file?rz(file,fin):fin(old);
+}
+
+function del(id){
+  ask('ລຶບສິນຄ້ານີ້?',()=>{db.set(K.p,P().filter(x=>x.id!==id));show()});
+}
+
+function addCatPrompt(){
+  const d=document.createElement('div');
+  d.className='fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4';
+  d.innerHTML=`<div class="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl"><h3 class="font-bold text-base mb-3">ເພີ່ມໝວດໝູ່ໃໝ່</h3><label class="block text-xs text-gray-500 mb-2">ຊື່ໝວດໝູ່ (ພາສາລາວ)<input id="cn_in" class="w-full border rounded-xl p-2.5 text-sm mt-1"></label><div class="flex gap-2 justify-end mt-4"><button id="cn" class="px-4 py-2 rounded-xl text-sm font-bold bg-gray-100 text-gray-600">ຍົກເລີກ</button><button id="cy" class="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-600 text-white">ບັນທຶກ</button></div></div>`;
+  document.body.appendChild(d);
+  d.querySelector('#cn').onclick=()=>d.remove();
+  d.querySelector('#cy').onclick=()=>{
+    const val=d.querySelector('#cn_in').value.trim();
+    if(!val)return;
+    const cs_map=CATS(),k='cat_'+Date.now();
+    cs_map[k]=val;
+    db.set(K.c,cs_map);
+    d.remove();
+    show();
+  };
+}
+
+function delCat(k){
+  ask('ລຶບໝວດໝູ່ນີ້?',()=>{
+    const cs_map=CATS();
+    delete cs_map[k];
+    db.set(K.c,cs_map);
+    show();
+  });
+}
+
+function sendA(){
+  const a=CH(),i=$('#ain'),x=i&&i.value.trim();
+  if(!x||!a[cc])return;
+  a[cc].msgs.push({f:'a',t:x,at:Date.now(),r:0});
+  db.set('apx_chat',a);
+  show();
+  const n=$('#ain');if(n&&n.focus)n.focus();
+}
+
+if(window.addEventListener){
+  window.addEventListener('storage',e=>{
+    if(!['apx_chat','apx_orders','apx_cats'].includes(e.key)||!['chat','menu','orders','bills','cats'].includes(v))return;
+    const i=$('#ain'),t0=i?i.value:'';
+    show();
+    if(t0){const n=$('#ain');if(n)n.value=t0;}
+  });
+}
+
+show();
+</script></body></html>

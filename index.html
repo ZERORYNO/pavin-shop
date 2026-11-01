@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="lo"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>APEX MOTO</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Lao:wght@400;600;700&family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+<style>body{font-family:'Noto Sans Lao','Noto Sans SC',sans-serif}::-webkit-scrollbar{display:none}
+.dark body{background:#0b1220;color:#e5e7eb}.dark .bg-white{background-color:#111827}.dark .bg-white\/90{background-color:rgba(17,24,39,.9)}.dark .bg-gray-50{background-color:#0f172a}.dark .bg-gray-100{background-color:#1f2937}.dark .bg-gray-200{background-color:#374151}
+.dark .border,.dark .border-t,.dark .border-b,.dark .border-x{border-color:#374151}.dark .border-emerald-600,.dark .border-emerald-500{border-color:#10b981}.dark .border-emerald-100{border-color:#065f46}.dark .divide-x>*{border-color:#374151}
+.dark .text-gray-800,.dark .text-gray-700{color:#e5e7eb}.dark .text-gray-600,.dark .text-gray-500{color:#9ca3af}.dark .text-gray-400{color:#6b7280}.dark .text-emerald-700{color:#34d399}
+.dark .bg-emerald-50{background-color:#064e3b}.dark .bg-emerald-100{background-color:#065f46}.dark .bg-amber-50{background-color:#451a03}.dark .bg-red-50{background-color:#450a0a}
+.dark input,.dark select,.dark textarea{background-color:#1f2937;color:#e5e7eb;border-color:#374151}.dark .hover\:bg-gray-50:hover{background-color:#1f2937}
+
+@media print {
+  body * { visibility: hidden; }
+  #receipt-print-area, #receipt-print-area * { visibility: visible; }
+  #receipt-print-area { position: absolute; left: 0; top: 0; width: 80mm; font-size: 12px; color: #000; }
+}
+</style></head>
+<body class="bg-gray-50 text-gray-800">
+<div class="max-w-6xl mx-auto bg-white min-h-screen pb-24 md:pb-8 md:border-x">
+<header class="sticky top-0 z-30 bg-white border-b">
+ <div class="px-4 py-3 flex items-center justify-between gap-3">
+  <div class="flex items-center gap-2 cursor-pointer shrink-0" onclick="tab('home')"><div class="w-9 h-9 bg-emerald-500 rounded-lg text-white flex items-center justify-center"><i class="fa-solid fa-bolt"></i></div><b class="text-lg">APEX<span class="text-emerald-500">MOTO</span></b></div>
+  <nav id="dnav" class="hidden md:flex items-center gap-1 flex-1 justify-center"></nav>
+  <div class="flex items-center gap-2 shrink-0">
+   <button onclick="tab('contact')" aria-label="contact" class="md:hidden w-9 h-9 rounded-full bg-gray-100 text-gray-500"><i class="fa-solid fa-headset"></i></button>
+   <button id="avatar" onclick="tab('settings')" aria-label="settings" class="w-9 h-9 rounded-full bg-gray-100 text-gray-600 hover:bg-emerald-50 hover:text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-gear"></i></button>
+  </div>
+ </div>
+ <div class="px-4 pb-2.5"><input id="q" oninput="render()" class="w-full md:max-w-xl md:block md:mx-auto bg-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:ring-1 ring-emerald-500" placeholder="ຄົ້ນຫາສິນຄ້າ ຫຼື ສະແກນບາດໂຄ້ດ..."></div>
+</header>
+<main id="main"></main>
+<footer id="footer" class="border-t bg-gray-50 mt-8"></footer>
+<nav id="nav" class="md:hidden fixed bottom-0 inset-x-0 bg-white border-t z-30 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] flex justify-around"></nav>
+</div>
+<div id="modal" class="hidden fixed inset-0 z-50 bg-black/40 flex items-end md:items-center justify-center md:p-4"><div id="mbody" class="bg-white w-full md:max-w-lg rounded-t-3xl md:rounded-3xl p-5 max-h-[90vh] overflow-y-auto"></div></div>
+<div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-white border text-sm px-4 py-2.5 rounded-2xl shadow-lg opacity-0 transition-opacity pointer-events-none flex items-center gap-2"></div>
+<div id="drawer" class="hidden fixed inset-0 z-40 bg-black/40 flex justify-end" onclick="if(event.target===this)closeSet()"><div id="dpanel" class="bg-white w-full md:w-[26rem] h-full overflow-y-auto"></div></div>
+<button id="chat" onclick="tab('chat')" aria-label="chat" class="fixed right-4 bottom-20 md:bottom-6 z-30 w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-lg"></button>
+
+<script src="shared.js"></script>
+
+<!-- FIREBASE SDK INITIALIZATION -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-app.js";
+  import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/13.1.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA_VyXk0rqZiHjxfKNzPdGqQIJmlX8uD6c",
+    authDomain: "pavin-e5663.firebaseapp.com",
+    projectId: "pavin-e5663",
+    storageBucket: "pavin-e5663.firebasestorage.app",
+    messagingSenderId: "494502305644",
+    appId: "1:494502305644:web:728f46afa1b27cdf52dd49",
+    measurementId: "G-4Z2RB0W238"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  window.firebaseAuth = auth;
+  window.signInWithPopup = signInWithPopup;
+  window.GoogleAuthProvider = GoogleAuthProvider;
+  window.signOut = signOut;
+
+  onAuthStateChanged(auth, (user) => {
+    if (user) {
+      setU({
+        id: user.uid,
+        email: user.email || '',
+        contact: user.email || 'User',
+        name: user.displayName || (user.email ? user.email.split('@')[0] : 'ผู้ใช้งาน'),
+        photo: user.photoURL || ''
+      });
+    }
+    render();
+  });
+</script>
+
+<script>
+const T={
+lo:{home:'ໜ້າຫຼັກ',cart:'ກະຕ່າ',orders:'ອໍເດີ້',settings:'ຕັ້ງຄ່າ',search:'ຄົ້ນຫາສິນຄ້າ...',all:'ທັງໝົດ',cnt:'ລາຍການ',add:'ເພີ່ມເຂົ້າກະຕ່າ',buy:'ຊື້ເລີຍ',added:'ເພີ່ມເຂົ້າກະຕ່າແລ້ວ',login:'ເຂົ້າສູ່ລະບົບ',empty:'ບໍ່ມີສິນຄ້າໃນກະຕ່າ',sub:'ລາຄາສິນຄ້າ',ship:'ຄ່າຈັດສົ່ງ',total:'ລວມທັງໝົດ',checkout:'ຊຳລະເງິນ',del:'ລຶບ',carrier:'ຂົນສົ່ງ',prov:'ແຂວງ',dist:'ເມືອງ',br:'ສາຂາ',pay:'ການຊຳລະເງິນ',qr:'ສະແກນ QR (BCEL OnePay)',cod:'ເກັບເງິນປາຍທາງ (COD)',showQr:'ສ້າງ QR',confCod:'ຢືນຢັນສັ່ງຊື້ (COD)',paid:'ຈຳລອງຊຳລະສຳເລັດ',noOrd:'ຍັງບໍ່ມີອໍເດີ້',st:'ກຳລັງກະກຽມ',trk:'ເລກພັດສະດຸ',dtl:'ລາຍລະອຽດ',profile:'ຂໍ້ມູນສ່ວນຕົວ',name:'ຊື່-ນາມສະກຸນ',gender:'ເພດ',male:'ຊາຍ',female:'ຍິງ',other:'ອື່ນໆ',dob:'ວັນເດືອນປີເກີດ',email:'ອີເມລ',save:'ບັນທຶກ',photo:'ຮູບໂປຣໄຟລ໌',sec:'ຄວາມປອດໄພ',soc:'ບັນຊີເຊື່ອມຕໍ່',conn:'ເຊື່ອມຕໍ່',disc:'ຍົກເລີກ',card:'ບັດຊຳລະເງິນ',last4:'ເລກ 4 ໂຕທ້າຍ',exp:'ໝົດອາຍຸ ດດ/ປປ',noCvv:'ບໍ່ເเก็บເລກບັດເຕັມ ແລະ CVC/CVV',pref:'ການແຈ້ງເຕືອນ & PDPA',push:'ແຈ້ງເຕືອນ Push',pdpa:'ຮັບຂ່າວສານການຕະຫຼາດ',accept:'ຍິນຍອມ',decline:'ປະຕິເສດ',help:'ຊ່ວຍເຫຼືອ & ຄວາມປອດໄພ',guar:'ຮັບປະກັນສິນຄ້າແທ້ 100%',out:'ອອກຈາກລະບົບ',lang:'ພາສາ',acct:'ບັນຊີ & ອໍເດີ້',sys:'ຕັ້ງຄ່າລະບົບ',active:'ໃຊ້ງານ',ok:'ສຳເລັດ',add2:'ເພີ່ມບັດ',fav:'ລາຍການໂປດ',contact:'ຕິດຕໍ່ເຮົາ',favEmpty:'ຍັງບໍ່ມີລາຍການໂປດ',sold:'ຂາຍແລ້ວ',left:'ເຫຼືອ',low:'ໃກ້ໝົດ',oos:'ສິນຄ້າໝົດ',tProg:'ກຳລັງດຳເນີນການ',tDone:'ສຳເລັດແລ້ວ',sOrd:'ຄົ້ນຫາເລກອໍເດີ້ ຫຼື ເລກພັດສະດຸ',sp0:'ສັ່ງແລ້ວ',sp1:'ຖ້າດຳເນີນການ',sp2:'ກຳລັງແພັກ',sp3:'ກຳລັງຈັດສົ່ງ',sp4:'ສຳເລັດ',toShop:'ຕິດຕໍ່ຮ້ານຄ້າ',reorder:'ສັ່ງຊື້ອີກຄັ້ງ',hrs:'ເປີດໃຫ້ບໍລິການ (Online 08:00 - 20:00)',cs:'ສູນຊ່ວຍເຫຼືອ APEX MOTO',csD:'ທີມຊ່າງມືອາຊີບ ພ້ອມໃຫ້ຄຳປຶກສາເລື່ອງອາໄຫຼ່ ແລະ ການຈັດສົ່ງທົ່ວປະເທດລາວ',f1:'ອາໄຫຼ່ແທ້ 100%',f2:'ຕອບກັບໄວ',f3:'ສົ່ງທົ່ວປະເທດ',fast:'ຕອບໄວພາຍໃນ 5 ນาที',hot:'ສາຍດ່ວນ Hotline',free:'ໂທຟຣີທຸກເຄືອຂ່າຍ',desc:'ລາຍລະອຽດ',noDesc:'ບໍ່ມີລາຍລະອຽດ',qtyL:'ຈຳນວນ',reviews:'ລີວິວ',noRev:'ຍັງບໍ່ມີລີວິວ',related:'ສິນຄ້າທີ່ກ່ຽວຂ້ອງ',lowN:'ສະຕ໋ອກໜ້ອຍ',inStock:'ມີສິນຄ້າ',quick:'ລິ້ງດ່ວນ',svc:'ບໍລິການລູກຄ້າ',products:'ສິນຄ້າ',fdesc:'ຮ້ານອາໄຫຼ່ ແລະ ອຸປະກອນຕົກແຕ່ງມໍເຕີໄຊ ອາໄຫຼ່ແທ້ 100% ຈັດສົ່ງທົ່ວປະເທດລາວ',rights:'ສະຫງວນລິຂະສິດ.',addr:'ທີ່ຢູ່ຈັດສົ່ງ & ສາຂາປະຈຳ',priv:'ນະໂຍບາຍຄວາມເປັນສ່ວນຕົວ',ver:'ລຸ້ນ',wa2:'ຕິດຕໍ່ສູນບໍລິການ WhatsApp',toAddr:'ຈັດສົ່ງໄປ',copy:'ກັອບປີ້',chat:'ແຊັດ',chatT:'ແຊັດກັບແອດມິນ',chatEmpty:'ເລີ່ມສົນທະນາກับແອດມິນໄດ້ເລີຍ',chatPh:'ພິມຂໍ້ຄວາມ...',stp1:'ທີ່ຢູ່ຈັດສົ່ງ',stp2:'ຊຳລະເງິນ',stp3:'ສຳເລັດ',stepN:'ຂັ້ນຕອນ',rcv:'ຂໍ້ມູນຜູ້ຮັບພັດສະດຸ',fname:'ຊື່ ແລະ ນາມສະກຸນ',fphone:'ເບີ WhatsApp ຂອງທ່ານ',pickC:'ເລືອກບໍລິສັດຂົນສົ່ງ',dest:'ສາຂາປາຍທາງ',note:'ໝາຍເຫດເພີ່ມເຕີມສຳລັບຂົນສົ່ງ',sumT:'ສະຫຼຸບລາຍການສັ່ງຊື້',goPay:'ສືບຕໍ່ໄປຊຳລະເງິນ',payIn:'ຊຳລະພາຍໃນ',payHow:'ວິທີການຊຳລະເງິນ',payHow2:'ເລືອກຊ່ອງທາງທີ່ສະດວກ',rec:'ແນະນຳ',toPay:'ຍອດທີ່ຕ້ອງຈ່າຍ',doPay:'ດຳເນີນການຊຳລະເງິນ',secure:'ຂໍ້ມູນການຊຳລະເງິນຂອງທ່ານຖືກປົກປ້ອງ',expired:'ໝົດເວລາຊຳລະເງິນ',okT:'ສັ່ງຊື້ສຳເລັດ',okS:'ຂອບໃຈທີ່ສັ່ງຊື້ກັບ APEX MOTO',viewO:'ເບິ່ງຄຳສັ່ງຊື້',keep:'ເລືອກຊື້ຕໍ່',qrD:'ສະແກນ QR ด้วยแອັບ BCEL One เพื่อຊຳລະເງິນ',codD:'ຈ່າຍເງິນສົດເມື່ອໄດ້ຮັບພັດສະດຸ',dmode:'ໂໝດສະແດງຜົນ',light:'ສະຫວ່າງ',dark:'ມືດ',acc1:'ບັນຊີ',app:'ການຕັ້ງຄ່າແອັບ',brPh:'ພິມຊື່ສາຂາຮັບພັດສະດຸ',provPh:'ພິມຊື່ແຂວງ',distPh:'ພິມຊື່ເມືອງ',badName:'ກະລຸນາກອກຊື່ ແລະ ນາມສະກຸນ',badPhone:'ກະລຸນາກອກເບີໂທໃຫ້ຖືກຕ້ອງ (ຢ່າງນ້ອຍ 8 ໂຕ)',badProv:'ກະລຸນາກອກຊື່ແຂວງ',badDist:'ກະລຸນາກອກຊື່ເມືອງ',badBr:'ກະລຸນາກອກຊື່ສາຂາຮັບພັດສະດຸ',printBill:'พิมพ์ใบเสร็จบิล'}};
+
+// รายชื่ออีเมลแอดมิน
+const ADMIN_EMAILS = ['admin@apexmoto.la', 'pavin@gmail.com'];
+const isAdmin = () => { const u = U(); return u && u.email && ADMIN_EMAILS.includes(u.email.toLowerCase()); };
+
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let L='lo',cur='home',cat='',pend=null,code='',pend2=null,co,otab='p',oq='',lt='e',pid=0,pq=1,prev='home',RE,cs=1,cdEnd=0,tmrId=null;
+const SHIP=15000,sIdx=o=>o.v===2?o.st:[0,2,3,4][typeof o.st==='number'?o.st:1],t=k=>T[L][k]??k,ln=x=>typeof x==='string'?x:(x&&(x[L]||x.en||x.lo))||'',U=()=>db.get('apx_user',null),setU=u=>db.set('apx_user',u),
+ cart=()=>db.get('apx_cart',[]),prods=()=>db.get(K.p,P0),
+ kip=n=>'₭'+n.toLocaleString('en-US'),
+ sub=()=>cart().reduce((s,i)=>{const p=prods().find(p=>p.id===i.id);return s+(p?p.price*i.q:0)},0),
+ img=(p,c)=>p.img?`<img src="${esc(p.img)}" class="${c} object-cover">`:`<div class="${c} bg-gray-100 flex items-center justify-center"><svg viewBox="0 0 24 24" class="w-1/3 h-1/3 text-gray-300" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg></div>`,
+ dk=()=>db.get('apx_theme','light')==='dark',
+ imgFit=(p,c)=>p.img?`<div class="${c} bg-gray-50 flex items-center justify-center overflow-hidden"><img src="${esc(p.img)}" class="w-full h-full object-contain"></div>`:img(p,c),
+ XB='<button onclick="closeM()" class="float-right text-gray-400"><i class="fa-solid fa-xmark text-lg"></i></button>',
+ openM=h=>{$('#mbody').innerHTML=h;$('#modal').classList.remove('hidden')},closeM=()=>$('#modal').classList.add('hidden'),
+ ini=u=>esc((u.name||u.contact||'U')[0]).toUpperCase(),
+ av=(u,c)=>u&&u.photo?`<img src="${u.photo}" class="${c} rounded-full object-cover">`:`<span class="${c} rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold">${ini(u||{})}</span>`;
+
+function toast(m, isErr = false){
+  const e=$('#toast');
+  if(isErr){
+    e.className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-red-500 text-white border border-red-600 text-sm px-4 py-2.5 rounded-2xl shadow-lg transition-opacity pointer-events-none flex items-center gap-2 font-bold opacity-100";
+    e.innerHTML=`<i class="fa-solid fa-circle-exclamation"></i> <span>${esc(m)}</span>`;
+  }else{
+    e.className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-white border border-emerald-500 text-emerald-800 text-sm px-4 py-2.5 rounded-2xl shadow-lg transition-opacity pointer-events-none flex items-center gap-2 font-bold opacity-100";
+    e.innerHTML=`<i class="fa-solid fa-circle-check text-emerald-600"></i> <span>${esc(m)}</span>`;
+  }
+  clearTimeout(e._t);
+  e._t=setTimeout(()=>e.classList.add('opacity-0'), 3000);
+}
+
+function gate(fn){if(U())fn();else{pend=fn;loginM()}}
+
+function tab(k){
+  if(k==='settings'){if(!U()){pend=()=>tab(k);return loginM()}return openSet()}
+  closeSet();if(['orders','chat'].includes(k)&&!U()){pend=()=>tab(k);return loginM()}
+  cur=k;closeM();render();scrollTo(0,0)
+}
+
+function setCat(k){cat=k;cur='home';render()}
+function setTheme(v){db.set('apx_theme',v);render()}
+
+function render(){document.documentElement.lang=L;document.documentElement.classList.toggle('dark',dk());$('#q').placeholder=t('search');const u=U();
+ const n=cart().reduce((s,i)=>s+i.q,0),nb=(k,i,m)=>`<button onclick="tab('${k}')" title="${t(k)}" class="relative ${m?'flex flex-col items-center w-16 text-[10px]':'flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-gray-50'} ${cur===k?'text-emerald-600 font-bold':'text-gray-400'}"><i class="fa-solid fa-${i} ${m?'text-lg':''}"></i>${k==='cart'&&n?`<b class="absolute ${m?'-top-1 right-2':'top-0 left-6'} bg-emerald-500 text-white rounded-full w-4 h-4 text-[9px] flex items-center justify-center">${n}</b>`:''}<span class="${m?'':'hidden lg:inline'}">${t(k)}</span></button>`;
+ $('#nav').innerHTML=[['home','house'],['fav','heart'],['cart','cart-shopping'],['orders','truck-fast']].map(([k,i])=>nb(k,i,1)).join('');
+ $('#dnav').innerHTML=[['home','house'],['fav','heart'],['orders','truck-fast'],['contact','headset'],['chat','comments'],['cart','cart-shopping']].map(([k,i])=>nb(k,i,0)).join('');
+ $('#main').innerHTML=`<div class="${['home','fav','cart','product','checkout','chat'].includes(cur)?'':'max-w-5xl mx-auto'}">${V[cur]()}</div>`;$('#footer').innerHTML=footer();$('#nav').classList[cur==='checkout'?'add':'remove']('hidden');$('#chat').classList[['checkout','chat'].includes(cur)?'add':'remove']('hidden');chatBadge();if(cur==='chat'){const e=$('#cmsgs');if(e)e.scrollTop=e.scrollHeight}if(!$('#drawer').classList.contains('hidden'))$('#dpanel').innerHTML=drawerHtml()}
+const favs=()=>db.get('apx_fav',[]),stk=p=>p.stock??99,lw=p=>p.low||7;
+function toggleFav(id,e){e&&e.stopPropagation();const f=favs();db.set('apx_fav',f.includes(id)?f.filter(x=>x!==id):[...f,id]);render()}
+const card=p=>{const s=stk(p),sd=p.sold||0,pc=sd+s>0?Math.round(100*sd/(sd+s)):0,fv=favs().includes(p.id);
+ return `<div class="border rounded-2xl p-2.5 flex flex-col bg-white shadow-sm"><div class="relative"><div onclick="prod(${p.id})" class="cursor-pointer">${img(p,'w-full h-36 rounded-xl')}</div><button onclick="toggleFav(${p.id},event)" aria-label="${t('fav')}" class="absolute top-1.5 right-1.5 w-8 h-8 rounded-full bg-white/90 shadow flex items-center justify-center ${fv?'text-red-500':'text-gray-400'}"><i class="fa-${fv?'solid':'regular'} fa-heart"></i></button></div>
+ <h4 onclick="prod(${p.id})" class="text-sm font-bold mt-2 truncate cursor-pointer">${esc(ln(p.n))}</h4><b class="text-emerald-700">${kip(p.price)}</b><span class="h-4"></span>
+ <div class="h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden"><div class="h-full bg-emerald-600" style="width:${pc}%"></div></div><div class="flex justify-between text-[10px] mt-1 ${s<=lw(p)?'text-red-600':'text-gray-500'}"><span>${t('sold')} ${pc}%</span><span>${s<=0?t('oos'):s<=lw(p)?t('low')+' · '+s:t('left')+' '+s}</span></div>
+ <button onclick="addC(${p.id})" ${s<=0?'disabled':''} class="mt-2 w-full py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 ${s<=0?'bg-gray-200 text-gray-400':'bg-emerald-700 hover:bg-emerald-800 text-white'}"><i class="fa-solid fa-cart-plus"></i>${t('add')}</button></div>`},
+ grid=l=>`<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">${l.map(card).join('')}</div>`;
+const empty=m=>`<div class="py-20 text-center text-gray-400"><i class="fa-solid fa-box-open text-3xl mb-2"></i><p class="text-sm">${m}</p></div>`;
+const V={
+home(){const q=$('#q').value.toLowerCase(),cs_map=CATS(),list=prods().filter(p=>(!cat||p.cat===cat)&&(ln(p.n)+p.code).toLowerCase().includes(q));
+ return `<div class="sm:hidden px-4 pt-3"><select onchange="setCat(this.value)" class="w-full border rounded-xl px-3 py-2 text-sm bg-white"><option value="">${t('all')} (${prods().length})</option>${Object.entries(cs_map).map(([k,name])=>`<option value="${k}" ${cat===k?'selected':''}>${esc(name)} (${prods().filter(p=>p.cat===k).length})</option>`).join('')}</select></div><div class="hidden sm:flex gap-2 overflow-x-auto px-4 py-3"><button onclick="setCat('')" class="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold ${!cat?'bg-emerald-600 text-white':'bg-gray-100 text-gray-600'}">${t('all')} <span class="opacity-60">${prods().length}</span></button>${Object.entries(cs_map).map(([k,name])=>`<button onclick="setCat('${k}')" class="whitespace-nowrap px-3 py-1.5 rounded-xl text-xs font-bold ${cat===k?'bg-emerald-600 text-white':'bg-gray-100 text-gray-600'}">${esc(name)} <span class="opacity-60">${prods().filter(p=>p.cat===k).length}</span></button>`).join('')}</div>
+ <div class="px-4 text-xs text-gray-400 mb-2">${list.length} ${t('cnt')}</div><div class="px-4">${grid(list)}</div>`},
+fav(){const l=prods().filter(p=>favs().includes(p.id));return l.length?`<div class="p-4">${grid(l)}</div>`:empty(t('favEmpty'))},
+product(){const p=prods().find(x=>x.id===pid);if(!p)return empty(t('oos'));const s=stk(p),fv=favs().includes(p.id),rel=prods().filter(x=>x.cat===p.cat&&x.id!==p.id).slice(0,4),off=s<=0?'disabled':'',dis='disabled:bg-gray-200 disabled:text-gray-400 disabled:border-gray-200';
+ return `<div class="p-4"><button onclick="back()" class="text-sm text-gray-600 flex items-center gap-2 mb-4"><i class="fa-solid fa-chevron-left text-xs"></i>${t('back')}</button>
+ <div class="md:grid md:grid-cols-2 md:gap-8"><div class="relative">${imgFit(p,'w-full aspect-square rounded-2xl border')}</div>
+ <div class="mt-4 md:mt-0"><div class="flex items-start gap-3"><h1 class="text-xl md:text-2xl font-bold flex-1">${esc(ln(p.n))}</h1><button onclick="toggleFav(${p.id},event)" aria-label="${t('fav')}" class="w-10 h-10 rounded-full border flex items-center justify-center ${fv?'text-red-500':'text-gray-400'}"><i class="fa-${fv?'solid':'regular'} fa-heart"></i></button></div><p class="text-xs text-gray-400 mt-1">${esc(p.code)}</p>
+ <div class="mt-3 flex items-baseline gap-3"><b class="text-3xl text-emerald-700">${kip(p.price)}</b></div>
+ <span class="inline-block mt-3 text-xs font-bold px-3 py-1 rounded-full ${s<=0?'bg-gray-100 text-gray-500':s<=lw(p)?'bg-amber-50 text-amber-700':'bg-emerald-50 text-emerald-700'}">${s<=0?t('oos'):(s<=lw(p)?t('lowN'):t('inStock'))+' ('+s+')'}</span>
+ <div class="flex items-center gap-3 mt-4"><span class="text-sm text-gray-500">${t('qtyL')}:</span><div class="flex items-center border rounded-xl"><button onclick="pqty(-1)" class="w-10 h-10 text-lg">−</button><span id="pq" class="w-10 text-center font-bold">${pq}</span><button onclick="pqty(1)" class="w-10 h-10 text-lg">+</button></div></div>
+ <div class="grid grid-cols-2 gap-3 mt-4"><button onclick="addC(${p.id},0,pq)" ${off} class="py-3 rounded-xl font-bold text-sm bg-emerald-700 text-white flex items-center justify-center gap-2 ${dis}"><i class="fa-solid fa-cart-plus"></i>${t('add')}</button><button onclick="addC(${p.id},1,pq)" ${off} class="py-3 rounded-xl font-bold text-sm border border-emerald-700 text-emerald-700 ${dis}">${t('buy')}</button></div>
+ <div class="border-t mt-6 pt-4"><h3 class="font-bold mb-2">${t('desc')}</h3><p class="text-sm text-gray-600">${esc(ln(p.d||{}))||t('noDesc')}</p></div></div></div>
+ <div class="border-t mt-8 pt-4"><h3 class="font-bold text-lg">${t('reviews')} (0)</h3><p class="text-sm text-gray-400 mt-2">${t('noRev')}</p></div>
+ ${rel.length?`<div class="border-t mt-8 pt-4"><h3 class="font-bold text-lg mb-3">${t('related')}</h3>${grid(rel)}</div>`:''}</div>`},
+cart(){const c=cart().map(i=>({...i,p:prods().find(p=>p.id===i.id)})).filter(i=>i.p);if(!c.length)return empty(t('empty'));const s=sub();
+ return `<div class="p-4 lg:grid lg:grid-cols-3 lg:gap-4"><div class="lg:col-span-2 space-y-3">${c.map(i=>`<div class="border rounded-2xl p-4 shadow-sm bg-white"><div class="flex gap-4">${img(i.p,'w-24 h-24 md:w-28 md:h-28 rounded-xl shrink-0')}<div class="flex-1 min-w-0"><h4 class="font-bold text-base line-clamp-2">${esc(ln(i.p.n))}</h4><p class="text-xs text-gray-400">${esc(i.p.code)}</p><b class="text-emerald-700 text-lg">${kip(i.p.price)}</b><div class="flex items-center justify-between mt-2"><div class="flex items-center gap-1 bg-gray-100 rounded-xl p-1"><button onclick="qty(${i.id},-1)" class="w-9 h-9 bg-white rounded-lg text-lg">−</button><span class="w-8 text-center font-bold">${i.q}</span><button onclick="qty(${i.id},1)" class="w-9 h-9 bg-white rounded-lg text-lg">+</button></div><button onclick="qty(${i.id},-99)" aria-label="${t('del')}" class="w-10 h-10 text-red-500 hover:bg-red-50 rounded-xl"><i class="fa-solid fa-trash-can"></i></button></div></div></div>
+ <div class="flex justify-between items-center border-t mt-3 pt-3 text-sm"><span class="text-gray-500">${t('qtyL')}: <b class="text-gray-800">×${i.q}</b></span><b class="text-emerald-700">${kip(i.p.price*i.q)}</b></div></div>`).join('')}</div>
+ <div class="mt-3 lg:mt-0 lg:sticky lg:top-36 self-start space-y-2"><div class="bg-gray-50 rounded-xl p-3 text-xs space-y-1"><div class="flex justify-between"><span>${t('sub')}</span><span>${kip(s)}</span></div><div class="flex justify-between"><span>${t('ship')}</span><span>${kip(SHIP)}</span></div><div class="flex justify-between font-bold text-sm border-t pt-1"><span>${t('total')}</span><span class="text-emerald-700">${kip(s+SHIP)}</span></div></div>
+ <button onclick="gate(()=>checkout())" class="w-full py-3 bg-emerald-700 text-white font-bold rounded-xl text-sm">${t('checkout')}</button></div></div>`},
+orders(){const si=sIdx,m=db.get('apx_orders',[]).map((o,i)=>({o,i})),pc=m.filter(x=>si(x.o)<4).length,list=m.filter(({o})=>((otab==='d')===(si(o)===4))&&(o.no+o.trk).toLowerCase().includes(oq.toLowerCase()));
+ return `<div class="p-4"><input value="${esc(oq)}" onchange="oq=this.value;render()" placeholder="${t('sOrd')}" class="w-full border rounded-xl px-3 py-2 text-sm mb-3"><div class="flex gap-2 mb-3">${[['p',t('tProg')+' ('+pc+')'],['d',t('tDone')]].map(([k,l])=>`<button onclick="otab='${k}';render()" class="px-4 py-2 rounded-full text-xs font-bold ${otab===k?'bg-emerald-600 text-white':'bg-gray-100 text-gray-600'}">${l}</button>`).join('')}</div>${list.length?`<div class="grid gap-4 md:grid-cols-2">${list.map(({o,i})=>{const s=si(o),n=o.items.reduce((a,x)=>a+x.q,0);return `<div class="border rounded-2xl p-4 shadow-sm bg-white text-xs"><div class="flex justify-between items-start"><div><b class="text-sm">#${o.no}</b><p class="text-gray-400">${esc(o.at)}</p></div><span class="bg-emerald-50 text-emerald-700 font-bold px-2 py-1 rounded-full">● ${t('sp'+s)}</span></div>
+ <div class="flex items-center gap-3 border rounded-xl p-3 mt-3"><i class="fa-solid fa-truck text-emerald-600 text-lg"></i><div class="flex-1 min-w-0"><b class="block text-sm">${CAR[o.c]}</b><span class="text-gray-500">${ln(o.addr[2])} · ${ln(o.addr[1])}</span></div><button onclick="navigator.clipboard.writeText('${o.trk}');toast('✓')" class="font-bold text-emerald-700">${t('copy')}</button></div><p class="mt-2 font-mono font-bold"># ${o.trk}</p>${stp(s)}
+ <div class="flex items-start gap-2 bg-gray-50 rounded-xl p-3"><i class="fa-solid fa-location-dot text-emerald-600 mt-0.5"></i><div><b>${t('sp'+s)}</b><p class="text-gray-500">${esc(o.at)}</p></div></div>
+ <div class="flex items-center justify-between mt-3"><div class="flex items-center gap-2"><div class="flex -space-x-2">${o.items.slice(0,2).map(x=>img(prods().find(y=>y.id===x.id)||{},'w-10 h-10 rounded-lg border-2 border-white')).join('')}</div><b>${n} ${t('cnt')}</b></div><div class="text-right"><span class="text-[10px] text-gray-400 block">${t(o.pay)}</span><b class="text-base text-emerald-700">${kip(o.total)}</b></div></div>
+ <div class="grid grid-cols-2 gap-2 mt-3">${s===4?`<button onclick="reorder(${i})" class="py-2.5 border rounded-xl font-bold">${t('reorder')}</button>`:`<button onclick="tab('contact')" class="py-2.5 border rounded-xl font-bold"><i class="fa-regular fa-comment-dots"></i> ${t('toShop')}</button>`}${isAdmin()?`<button onclick="printOrderReceipt(${i})" class="py-2.5 bg-slate-800 text-white rounded-xl font-bold"><i class="fa-solid fa-print"></i> ${t('printBill')}</button>`:`<button onclick="odM(${i})" class="py-2.5 bg-emerald-700 text-white rounded-xl font-bold">${t('dtl')}</button>`}</div></div>`}).join('')}</div>`:empty(t('noOrd'))}</div>`},
+
+chat(){chatRead();return `<div class="p-4 max-w-2xl mx-auto"><div class="border rounded-2xl bg-white flex flex-col h-[70vh] overflow-hidden"><div class="px-4 py-3 border-b flex items-center gap-3"><span class="w-10 h-10 rounded-full bg-emerald-600 text-white flex items-center justify-center"><i class="fa-solid fa-headset"></i></span><div><b>${t('chatT')}</b><p class="text-[11px] text-emerald-700">● ${t('hrs')}</p></div></div><div id="cmsgs" class="flex-1 overflow-y-auto p-4 space-y-2">${chatMsgs()}</div><div class="p-3 border-t flex gap-2"><input id="cin" onkeydown="if(event.key==='Enter')sendC()" placeholder="${t('chatPh')}" class="flex-1 border rounded-xl px-3 py-2 text-sm"><button onclick="sendC()" aria-label="send" class="bg-emerald-700 text-white px-4 rounded-xl"><i class="fa-solid fa-paper-plane"></i></button></div></div></div>`},
+checkout(){const c=cart().map(i=>({...i,p:prods().find(p=>p.id===i.id)})).filter(i=>i.p),tot=sub()+SHIP;
+ if(cs===3){const o=db.get('apx_orders',[])[0];if(!o)return empty(t('noOrd'));return `<div class="p-4 max-w-md mx-auto text-center py-10"><span class="w-16 h-16 mx-auto rounded-full bg-emerald-600 text-white flex items-center justify-center text-2xl"><i class="fa-solid fa-check"></i></span><h2 class="font-bold text-xl mt-4">${t('okT')}</h2><p class="text-sm text-gray-500 mt-1">${t('okS')}</p><div class="border rounded-2xl p-4 mt-5 text-left text-sm space-y-2"><div class="flex justify-between"><span class="text-gray-500">#</span><b>${o.no}</b></div><div class="flex justify-between"><span class="text-gray-500">${t('trk')}</span><b class="font-mono">${o.trk}</b></div><div class="flex justify-between"><span class="text-gray-500">${t('total')}</span><b class="text-emerald-700">${kip(o.total)}</b></div></div><div class="grid grid-cols-2 gap-3 mt-4"><button onclick="tab('home')" class="py-3 border rounded-xl text-sm font-bold">${t('keep')}</button><button onclick="tab('orders')" class="py-3 bg-emerald-700 text-white rounded-xl text-sm font-bold">${t('viewO')}</button></div>${isAdmin()?`<button onclick="printOrderReceipt(0)" class="w-full mt-3 py-3 bg-slate-800 text-white rounded-xl text-sm font-bold"><i class="fa-solid fa-print"></i> ${t('printBill')}</button>`:''}</div>`}
+ if(!c.length)return empty(t('empty'));
+ const top=`<div class="flex items-center justify-between mb-3"><button onclick="${cs===1?"tab('cart')":"cs=1;render()"}" class="flex items-center gap-2 font-bold"><i class="fa-solid fa-arrow-left"></i>${t('checkout')}</button><span class="text-xs text-gray-400">${t('stepN')} ${cs}/3</span></div>
+ <div class="grid grid-cols-3 gap-2 bg-emerald-50 rounded-2xl p-3 text-[11px] text-center">${[1,2,3].map(n=>`<div class="flex flex-col items-center gap-1"><span class="w-8 h-8 rounded-full flex items-center justify-center ${cs>n?'bg-emerald-700 text-white':cs===n?'bg-emerald-600 text-white ring-4 ring-emerald-200':'bg-gray-200 text-gray-400'}">${cs>n?'<i class="fa-solid fa-check"></i>':n}</span><span class="${cs===n?'font-bold text-emerald-700':'text-gray-500'}">${n}. ${t('stp'+n)}</span></div>`).join('')}</div>`,
+ sum=`<div class="border rounded-2xl p-4 bg-white"><div class="flex justify-between items-center mb-3"><b class="text-sm">${t('sumT')}</b><span class="text-[11px] bg-gray-100 rounded-full px-2 py-0.5">${c.reduce((a,i)=>a+i.q,0)} ${t('cnt')}</span></div><div class="space-y-3">${c.map(i=>`<div class="flex items-center gap-3 text-sm">${img(i.p,'w-12 h-12 rounded-lg shrink-0')}<div class="flex-1 min-w-0"><b class="block truncate">${esc(ln(i.p.n))}</b><span class="text-xs text-gray-400">${t('qtyL')}: ${i.q}</span></div><b>${kip(i.p.price*i.q)}</b></div>`).join('')}</div><div class="border-t mt-3 pt-3 text-xs space-y-1"><div class="flex justify-between"><span class="text-gray-500">${t('sub')}</span><span>${kip(sub())}</span></div><div class="flex justify-between"><span class="text-gray-500">${t('ship')}</span><span>${kip(SHIP)}</span></div><div class="flex justify-between font-bold text-base border-t pt-2"><span>${t('total')}</span><span class="text-emerald-700">${kip(tot)}</span></div></div></div>`,
+ box=(ic,ti,body)=>`<div class="border rounded-2xl p-4 bg-white"><div class="flex items-center gap-3 mb-3"><span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-${ic}"></i></span><b class="text-sm">${ti}</b></div>${body}</div>`,
+ fn=cs===1?'coNext()':'goPay()',lb=cs===1?t('goPay'):t('doPay'),
+ act=`<button onclick="${fn}" class="hidden md:flex w-full items-center justify-center gap-2 bg-emerald-700 text-white font-bold rounded-xl py-3 text-sm">${lb} <i class="fa-solid fa-arrow-right"></i></button>`,
+ bar=`<div class="md:hidden fixed bottom-0 inset-x-0 z-40 bg-white border-t p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3"><div><span class="text-[10px] text-gray-500 block">${t('toPay')}</span><b class="text-emerald-700 text-lg">${kip(tot)}</b></div><button onclick="${fn}" class="bg-emerald-700 text-white font-bold rounded-xl px-5 py-3 text-sm">${lb} →</button></div>`;
+ let left;
+ if(cs===1){
+  cr=(k,nm,en,imgSrc)=>`<button onclick="co.c='${k}';render()" class="w-full flex items-center gap-3 border rounded-2xl p-3 mb-2 text-left ${co.c===k?'border-emerald-600 bg-emerald-50':''}"><img src="${imgSrc}" class="w-11 h-11 rounded-xl object-cover border shrink-0"><span class="flex-1"><b class="block text-sm">${nm}</b><span class="text-[11px] text-gray-400">${en}</span></span><span class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${co.c===k?'border-emerald-600 bg-emerald-600 text-white':'border-gray-300'}">${co.c===k?'<i class="fa-solid fa-check text-[10px]"></i>':''}</span></button>`;
+  left=box('user',t('rcv'),`<label class="block text-xs text-gray-500 mb-3">${t('fname')} *<input value="${esc(co.nm)}" oninput="co.nm=this.value" class="w-full border rounded-xl p-3 text-sm text-gray-800 mt-1"></label><label class="block text-xs text-gray-500">${t('fphone')} *<div class="flex mt-1"><span class="border rounded-l-xl px-3 flex items-center text-sm bg-gray-50 text-gray-800">+856</span><input value="${esc(co.ph)}" oninput="co.ph=this.value" inputmode="tel" class="w-full border border-l-0 rounded-r-xl p-3 text-sm text-gray-800"></div></label>`)+
+  box('truck',t('pickC'),cr('hal','ຮຸ່ງອາລຸນ ຂົນສົ່ງ','HAL Logistics','hal.png')+cr('anousith','ອານຸສິດ ຂົນສົ່ງ','Anousith Express','ans.png')+cr('mixay','ມີໄຊ ຂົນສົ່ງ','Mixay Express','mx.png'))+
+  box('location-dot',t('dest'),
+    `<label class="block text-xs text-gray-500 mb-2">${t('prov')} *<input value="${esc(co.p)}" oninput="co.p=this.value" placeholder="${t('provPh')}" class="w-full border rounded-xl p-3 text-sm text-gray-800 mt-1"></label>`+
+    `<label class="block text-xs text-gray-500 mb-2">${t('dist')} *<input value="${esc(co.d)}" oninput="co.d=this.value" placeholder="${t('distPh')}" class="w-full border rounded-xl p-3 text-sm text-gray-800 mt-1"></label>`+
+    `<label class="block text-xs text-gray-500 mb-2">${t('br')} *<input value="${esc(co.bt)}" oninput="co.bt=this.value" placeholder="${t('brPh')}" class="w-full border rounded-xl p-3 text-sm text-gray-800 mt-1"></label>`+
+    `<label class="block text-xs text-gray-500">${t('note')}<textarea oninput="co.nt=this.value" rows="2" class="w-full border rounded-xl p-3 text-sm text-gray-800 mt-1">${esc(co.nt)}</textarea></label>`
+  )}
+ else{const r=Math.max(0,Math.ceil((cdEnd-Date.now())/1000)),po=(k,ti,de,bd)=>`<button onclick="co.pay='${k}';render()" class="w-full flex items-start gap-3 border rounded-2xl p-4 mb-3 text-left ${co.pay===k?'border-emerald-600 bg-emerald-50':'bg-white'}"><span class="w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center shrink-0 ${co.pay===k?'border-emerald-600':'border-gray-300'}">${co.pay===k?'<span class="w-2.5 h-2.5 rounded-full bg-emerald-600"></span>':''}</span><span class="flex-1"><b class="block text-sm">${ti}</b><span class="text-xs text-gray-500">${de}</span></span>${bd?`<span class="text-[10px] font-bold bg-emerald-100 text-emerald-700 rounded-full px-2 py-0.5">${bd}</span>`:''}</button>`;
+  left=`<div class="flex items-center justify-between bg-emerald-50 border border-emerald-100 rounded-2xl p-3 text-sm"><span><i class="fa-regular fa-clock text-emerald-600"></i> ${t('payIn')}:</span><b id="tmr" class="bg-white border rounded-lg px-3 py-1 text-red-600 font-mono">${String(Math.floor(r/60)).padStart(2,'0')}:${String(r%60).padStart(2,'0')}</b></div><div><h3 class="font-bold">${t('payHow')}</h3><p class="text-xs text-gray-400 mb-3">${t('payHow2')}</p>${po('qr','BCEL OnePay (QR Code)',t('qrD'),t('rec'))}${po('cod',t('cod'),t('codD'),'')}</div><div class="border rounded-2xl p-3 text-xs text-gray-500 flex gap-2"><i class="fa-solid fa-shield-halved text-emerald-600 mt-0.5"></i>${t('secure')}</div>`}
+ return `<div class="p-4 pb-28 md:pb-8 max-w-5xl mx-auto">${top}<div class="mt-4 md:grid md:grid-cols-3 md:gap-4"><div class="md:col-span-2 space-y-4">${left}</div><div class="mt-4 md:mt-0 md:sticky md:top-36 self-start space-y-3">${sum}${act}</div></div></div>${bar}`},
+contact(){const lk=(h,ic,bg,ti,sub,ex)=>`<a href="${h}" ${ex?'target="_blank" rel="noopener"':''} class="flex items-center gap-3 border rounded-2xl p-4 shadow-sm"><span class="w-11 h-11 rounded-xl ${bg} text-white flex items-center justify-center"><i class="${ic} text-xl"></i></span><div class="flex-1"><b>${ti}</b><p class="text-emerald-700 font-bold">${sub[0]}</p><p class="text-[11px] text-gray-400">${sub[1]}</p></div><i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></a>`;
+ return `<div class="p-4 grid gap-3 md:grid-cols-2"><div class="rounded-2xl bg-emerald-50 p-4 md:col-span-2"><span class="inline-block bg-white text-emerald-700 text-xs font-bold px-3 py-1 rounded-full">● ${t('hrs')}</span><h2 class="font-bold mt-3">${t('cs')}</h2><p class="text-xs text-gray-500 mt-1">${t('csD')}</p><div class="flex flex-wrap gap-4 mt-3 text-[11px] font-bold text-gray-600">${[['circle-check','f1'],['bolt','f2'],['truck','f3']].map(([i,k])=>`<span><i class="fa-solid fa-${i} text-emerald-600"></i> ${t(k)}</span>`).join('')}</div></div>
+ ${lk('https://wa.me/'+WA.replace(/\D/g,''),'fa-brands fa-whatsapp','bg-emerald-600','WhatsApp',[WA,t('fast')],1)}${lk('tel:'+HOT.replace(/\D/g,''),'fa-solid fa-phone','bg-slate-800',t('hot'),[HOT,t('free')])}<button onclick="tab('chat')" class="flex items-center gap-3 border rounded-2xl p-4 shadow-sm text-left md:col-span-2"><span class="w-11 h-11 rounded-xl bg-emerald-700 text-white flex items-center justify-center"><i class="fa-solid fa-comments text-xl"></i></span><b class="flex-1">${t('chatT')}</b><i class="fa-solid fa-chevron-right text-xs text-gray-300"></i></button></div>`},
+
+settings(){const u=U()||{},
+ row=(i,l,r,f)=>`<div ${f?`onclick="${f}"`:''} class="flex items-center gap-3 py-3 border-b last:border-0 ${f?'cursor-pointer':''}"><i class="fa-solid fa-${i} w-5 text-emerald-600"></i><span class="flex-1 text-sm">${l}</span>${r||'<i class="fa-solid fa-chevron-right text-xs text-gray-300"></i>'}</div>`,
+ sec=h=>`<p class="px-4 pt-4 pb-1 text-[11px] font-bold text-gray-400 uppercase">${h}</p>`;
+ return `<div class="p-4 flex items-center gap-3 border-b">${av(u,'w-14 h-14 text-xl')}<div class="flex-1 min-w-0"><b class="block truncate">${esc(u.name||'—')}</b><span class="text-xs text-gray-400">${esc(u.contact||'—')}</span></div><button onclick="pn('profile')" aria-label="${t('profile')}" class="text-gray-400 hover:text-emerald-700"><i class="fa-solid fa-pen-to-square"></i></button></div>
+ ${sec(t('acc1'))}<div class="px-4">${row('user',t('profile'),'',"pn('profile')")}</div>
+ ${sec(t('app'))}<div class="px-4">${row('circle-half-stroke',t('dmode'),`<div class="flex gap-1">${pill("setTheme('light')",t('light'),!dk())}${pill("setTheme('dark')",t('dark'),dk())}</div>`)}</div>
+ ${sec(t('help'))}<div class="px-4">${row('headset',t('wa2'),`<span class="text-xs text-emerald-700 font-bold">${WA}</span>`,"window.open(waUrl())")}${row('circle-check',t('guar'),'<i class="fa-solid fa-shield-halved text-emerald-600 text-xs"></i>')}${row('user-shield',t('priv'),'',"pn('priv')")}${row('right-from-bracket',t('out'),'','out()')}</div>`}};
+
+function prod(id){openP(id)}
+function openP(id){if(cur!=='product')prev=cur;pid=id;pq=1;cur='product';closeM();render();scrollTo(0,0)}
+function back(){cur=prev||'home';render();scrollTo(0,0)}
+function pqty(d){const p=prods().find(x=>x.id===pid);pq=Math.min(Math.max(1,pq+d),Math.max(1,stk(p)));$('#pq').textContent=pq}
+const waUrl=()=>'https://wa.me/'+WA.replace(/\D/g,''),
+ footer=()=>{const lk=(f,l)=>`<li><button onclick="${f}" class="text-gray-500 hover:text-emerald-700 py-0.5 text-left">${l}</button></li>`,hd=h=>`<h4 class="font-bold text-sm mb-2">${h}</h4>`;
+ return `<div class="px-4 py-8 grid gap-6 sm:grid-cols-2 md:grid-cols-4"><div><div class="flex items-center gap-2"><div class="w-9 h-9 bg-emerald-500 rounded-lg text-white flex items-center justify-center"><i class="fa-solid fa-bolt"></i></div><b class="text-lg">APEX<span class="text-emerald-500">MOTO</span></b></div><p class="text-xs text-gray-500 mt-3">${t('fdesc')}</p></div>
+ <div>${hd(t('quick'))}<ul class="text-sm">${lk("tab('home')",t('home'))}${lk("setCat('')",t('products'))}</ul></div>
+ <div>${hd(t('svc'))}<ul class="text-sm">${lk("tab('orders')",t('orders'))}${lk("tab('fav')",t('fav'))}${lk("tab('contact')",t('contact'))}</ul></div>
+ <div>${hd(t('contact'))}<ul class="text-sm text-gray-500 space-y-1"><li><a href="tel:${HOT.replace(/\D/g,'')}" class="hover:text-emerald-700"><i class="fa-solid fa-phone w-5"></i>${HOT}</a></li><li><a href="${waUrl()}" target="_blank" rel="noopener" class="hover:text-emerald-700"><i class="fa-brands fa-whatsapp w-5"></i>${WA}</a></li></ul></div></div>
+ <div class="border-t text-center text-xs text-gray-400 py-4">© 2026 APEX MOTO. ${t('rights')}</div>`},
+ drawerHtml=()=>`<div class="sticky top-0 bg-white z-10 flex items-center justify-between px-4 py-3 border-b"><b>${t('settings')}</b><button onclick="closeSet()" aria-label="close" class="w-8 h-8 rounded-full bg-gray-100 text-gray-500"><i class="fa-solid fa-xmark"></i></button></div>${V.settings()}`;
+function openSet(){$('#drawer').classList.remove('hidden');$('#dpanel').innerHTML=drawerHtml()}
+function closeSet(){$('#drawer').classList.add('hidden')}
+const stp=s=>`<div class="flex items-start my-4">${[0,1,2,3,4].map(i=>`<div class="flex-1 flex flex-col items-center relative"><div class="w-8 h-8 rounded-full flex items-center justify-center text-xs z-10 ${i<=s?'bg-emerald-600 text-white':'bg-gray-200 text-gray-400'}"><i class="fa-solid fa-${['check','hourglass-half','box','truck','flag'][i]}"></i></div>${i?`<div class="absolute top-4 right-1/2 w-full h-0.5 ${i<=s?'bg-emerald-600':'bg-gray-200'}"></div>`:''}<span class="text-[10px] mt-1 ${i===s?'font-bold text-emerald-700':'text-gray-400'}">${t('sp'+i)}</span></div>`).join('')}</div>`;
+function odM(i){const o=db.get('apx_orders',[])[i],s=sIdx(o),r=(a,b)=>`<div class="flex justify-between gap-3"><span class="text-gray-500">${a}</span><b class="text-right">${b}</b></div>`;
+ openM(`${XB}<h3 class="font-bold">#${o.no}</h3><span class="inline-block mt-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">● ${t('sp'+s)}</span><p class="text-xs text-gray-400 mt-1">${esc(o.at)}</p>
+ <div class="mt-3 space-y-2">${o.items.map(x=>{const p=prods().find(y=>y.id===x.id)||{};return `<div class="flex items-center gap-3 text-sm">${img(p,'w-14 h-14 rounded-xl shrink-0')}<div class="flex-1 min-w-0"><span class="block truncate font-bold">${esc(ln(x.n))}</span><span class="text-xs text-gray-400">${kip(x.pr)} × ${x.q}</span></div><b>${kip(x.pr*x.q)}</b></div>`}).join('')}</div>
+ <div class="mt-3 rounded-2xl bg-gray-50 p-3 text-xs space-y-1.5">${r(t('carrier'),CAR[o.c])}${r(t('trk'),`<span class="font-mono">${o.trk}</span>`)}${r(t('toAddr'),`${ln(o.addr[0])} › ${ln(o.addr[1])} › ${ln(o.addr[2])}`)}${r(t('pay'),t(o.pay))}</div>
+ <div class="mt-3 text-xs space-y-1"><div class="flex justify-between"><span>${t('sub')}</span><span>${kip(o.total-SHIP)}</span></div><div class="flex justify-between"><span>${t('ship')}</span><span>${kip(SHIP)}</span></div><div class="flex justify-between font-bold text-sm border-t pt-2"><span>${t('total')}</span><span class="text-emerald-700">${kip(o.total)}</span></div></div>${isAdmin()?`<button onclick="printOrderReceipt(${i})" class="w-full mt-4 py-2.5 bg-slate-800 text-white rounded-xl font-bold text-sm"><i class="fa-solid fa-print"></i> ${t('printBill')}</button>`:''}`)}
+function reorder(i){const o=db.get('apx_orders',[])[i],c=cart();o.items.forEach(x=>{const p=prods().find(y=>y.id===x.id);if(!p)return;const e=c.find(y=>y.id===x.id),q=Math.min(x.q,stk(p)-(e?e.q:0));if(q<=0)return;e?e.q+=q:c.push({id:x.id,q})});db.set('apx_cart',c);tab('cart')}
+function addC(id,go,n=1){const p=prods().find(x=>x.id===id),c=cart(),i=c.find(x=>x.id===id);if((i?i.q:0)+n>stk(p))return toast(t('oos'), true);i?i.q+=n:c.push({id,q:n});db.set('apx_cart',c);closeM();toast(t('added'));go?tab('cart'):render()}
+function qty(id,d){const c=cart(),i=c.find(x=>x.id===id),p=prods().find(x=>x.id===id);if(i){if(d>0&&i.q>=stk(p))return toast(t('oos'), true);i.q+=d}db.set('apx_cart',c.filter(x=>x.q>0));render()}
+
+function loginM(){
+  openM(`<button onclick="pend=null;closeM()" class="float-right text-gray-400"><i class="fa-solid fa-xmark text-lg"></i></button>
+  <div class="text-center"><div class="w-14 h-14 mx-auto rounded-2xl bg-emerald-600 text-white flex items-center justify-center text-xl"><i class="fa-solid fa-bolt"></i></div><h3 class="font-bold text-xl mt-2">${t('login')}</h3><p class="text-[11px] text-emerald-700 font-bold tracking-wider">FIREBASE AUTH · APEX MOTORSPORT</p></div>
+  <div class="mt-6 space-y-3">
+    <button onclick="googleLogin()" class="w-full py-3.5 border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 font-bold rounded-xl text-sm flex items-center justify-center gap-3 shadow-sm transition-all"><svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.18v3.14C3.17 21.36 7.23 24 12 24z"/><path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.62H1.18C.43 8.14 0 9.87 0 12s.43 3.86 1.18 5.38l4.09-3.14z"/><path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.64 1.18 6.62l4.09 3.14c.95-2.85 3.6-4.96 6.73-4.96z"/></svg> เข้าสู่ระบบด้วย Google</button>
+  </div>`)
+}
+
+async function googleLogin(){
+  try {
+    const provider = new window.GoogleAuthProvider();
+    await window.signInWithPopup(window.firebaseAuth, provider);
+    closeM();
+    toast('เข้าสู่ระบบด้วย Google สำเร็จ');
+    const f = pend; pend = null; render(); f && f();
+  } catch (err) {
+    toast('Google Login Error: ' + err.message, true);
+  }
+}
+
+async function out(){
+  if(window.signOut && window.firebaseAuth) {
+    await window.signOut(window.firebaseAuth);
+  }
+  setU(null);
+  closeSet();
+  cur='home';
+  render();
+}
+
+function checkout(){const u=U()||{},ph=/^\+856/.test(u.contact||'')?u.contact.replace('+856','').trim():'';co={c:'anousith',p:'',d:'',bt:'',pay:'qr',nm:u.name||'',ph,nt:''};cs=1;RE=render;cur='checkout';render();scrollTo(0,0)}
+function tick(){if(cur!=='checkout'||cs!==2){clearInterval(tmrId);tmrId=null;return}const r=Math.max(0,Math.ceil((cdEnd-Date.now())/1000)),e=$('#tmr');if(e)e.textContent=String(Math.floor(r/60)).padStart(2,'0')+':'+String(r%60).padStart(2,'0');if(!r){clearInterval(tmrId);tmrId=null;closeM();toast(t('expired'), true);cs=1;render()}}
+
+function coNext(){
+  if(!co.nm.trim()) return toast(t('badName'), true);
+  if(co.ph.replace(/\D/g,'').length<8) return toast(t('badPhone'), true);
+  if(!co.p.trim()) return toast(t('badProv'), true);
+  if(!co.d.trim()) return toast(t('badDist'), true);
+  if(!co.bt.trim()) return toast(t('badBr'), true);
+
+  cs=2;cdEnd=Date.now()+600000;clearInterval(tmrId);tmrId=setInterval(tick,1000);render();scrollTo(0,0)
+}
+
+function goPay(){if(co.pay==='cod')return place();
+ openM(`${XB}<div class="text-center"><div class="bg-emerald-600 text-white rounded-xl py-2 font-bold text-sm">BCEL OnePay QR</div><img class="mx-auto my-3 w-44 h-44" alt="QR" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=BCEL_ONEPAY_APEXMOTO_SIMULATION"><b class="text-lg text-emerald-700">${kip(sub()+SHIP)}</b><button onclick="place()" class="w-full mt-4 py-3 bg-emerald-700 text-white font-bold text-xs rounded-xl">${t('paid')}</button></div>`)}
+
+function place(){
+  const items=cart().map(i=>{const p=prods().find(x=>x.id===i.id);return p&&{id:p.id,cd:p.code,n:p.n,q:i.q,pr:p.price}}).filter(Boolean),od=db.get('apx_orders',[]);
+  const newOrder = {
+    no:'APX-'+Date.now().toString().slice(-7),
+    at:new Date().toLocaleString(),
+    items,
+    total:sub()+SHIP,
+    c:co.c,
+    pay:co.pay,
+    addr:[co.p.trim(),co.d.trim(),co.bt.trim()],
+    st:0,
+    v:2,
+    cu:co.nm.trim(),
+    ct:'+856 '+co.ph.replace(/\D/g,''),
+    nt:(co.nt||'').trim(),
+    trk:({hal:'HAL',mixay:'MXS'}[co.c]||'ANS')+'-'+Math.floor(1e8*Math.random())
+  };
+  od.unshift(newOrder);
+  db.set('apx_orders',od);
+  const pl=prods();
+  items.forEach(x=>{const p=pl.find(y=>y.id===x.id);if(p){p.stock=stk(p)-x.q;p.sold=(p.sold||0)+x.q}});
+  db.set(K.p,pl);
+  db.set('apx_cart',[]);
+  clearInterval(tmrId);
+  closeM();
+  cs=3;
+  cur='checkout';
+  render();
+  scrollTo(0,0);
+}
+
+// ฟังก์ชันสั่งพิมพ์ใบเสร็จจากออเดอร์ (สำหรับแอดมิน)
+function printOrderReceipt(index) {
+  const orders = db.get('apx_orders', []);
+  const order = orders[index];
+  if(!order) return toast('ບໍ່ພົບຂໍ້ມູນອໍເດີ້', true);
+
+  const receiptHTML = `
+    <div id="receipt-print-area" style="padding:10px; font-family:monospace; width:80mm;">
+      <div style="text-align:center; font-weight:bold; font-size:16px;">APEX MOTO</div>
+      <div style="text-align:center; font-size:11px; margin-bottom:5px;">ຮ້ານອາໄຫຼ່ ແລະ ອຸປະກອນມໍເຕີໄຊ</div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="font-size:12px;">ເລກທີ: #${order.no}</div>
+      <div style="font-size:12px;">ວັນທີ: ${order.at}</div>
+      <div style="font-size:12px;">ລູກຄ້າ: ${esc(order.cu)} (${esc(order.ct)})</div>
+      <div style="font-size:12px;">ຂົນສົ່ງ: ${CAR[order.c]} (${esc(order.addr[0])} › ${esc(order.addr[1])} › ${esc(order.addr[2])})</div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <table style="width:100%; font-size:12px; border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid #000;">
+            <th style="text-align:left; padding:3px 0;">ລາຍການ</th>
+            <th style="text-align:center; padding:3px 0;">ຈຳນວນ</th>
+            <th style="text-align:right; padding:3px 0;">ລາຄາ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${order.items.map(item => `
+            <tr>
+              <td style="padding:3px 0;">${esc(ln(item.n))}</td>
+              <td style="text-align:center; padding:3px 0;">x${item.q}</td>
+              <td style="text-align:right; padding:3px 0;">${kip(item.pr * item.q)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ຄ່າສິນຄ້າ:</span><span>${kip(order.total - SHIP)}</span></div>
+      <div style="display:flex; justify-content:space-between; font-size:12px;"><span>ຄ່າຈັດສົ່ງ:</span><span>${kip(SHIP)}</span></div>
+      <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px; margin-top:3px;"><span>ລວມທັງໝົດ:</span><span>${kip(order.total)}</span></div>
+      <div style="border-bottom:1px dashed #000; margin:5px 0;"></div>
+      <div style="text-align:center; font-size:11px; margin-top:8px;">ຂອບໃຈທີ່ໃຊ້ບໍລິການ APEX MOTO</div>
+    </div>
+  `;
+
+  const container = document.createElement('div');
+  container.innerHTML = receiptHTML;
+  document.body.appendChild(container);
+  window.print();
+  document.body.removeChild(container);
+}
+
+// ระบบดักจับการสแกนบาร์โค้ดจากเครื่อง Scanner (USB/Bluetooth) อัตโนมัติทั่วหน้าเว็บ
+let barcodeBuffer = '';
+let barcodeTimer = null;
+window.addEventListener('keydown', (e) => {
+  if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+  if (e.key === 'Enter') {
+    if (barcodeBuffer.trim().length > 1) {
+      handleBarCodeScanResult(barcodeBuffer.trim());
+    }
+    barcodeBuffer = '';
+    return;
+  }
+  if (e.key.length === 1) {
+    barcodeBuffer += e.key;
+    clearTimeout(barcodeTimer);
+    barcodeTimer = setTimeout(() => { barcodeBuffer = ''; }, 150);
+  }
+});
+
+function handleBarCodeScanResult(codeText) {
+  const allProds = prods();
+  const found = allProds.find(p => (p.code && p.code.toLowerCase() === codeText.toLowerCase()) || String(p.id) === codeText);
+  if (found) {
+    addC(found.id, false, 1);
+    toast(`ສະແກນສິນຄ້າສຳເລັດ: ${ln(found.n)}`);
+  } else {
+    toast(`ບໍ່ພົບສິນຄ້ານี้ในລະບົບ: ${codeText}`, true);
+  }
+}
+
+const inp=(id,l,v='',ty='text')=>`<label class="block text-xs text-gray-500 mb-2">${l}<input id="${id}" type="${ty}" value="${esc(v)}" class="w-full border rounded-xl p-2.5 text-sm text-gray-800 mt-1"></label>`,
+ btn=(f,l)=>`<button onclick="${f}" class="w-full py-2.5 bg-emerald-500 text-white font-bold text-sm rounded-xl mt-1">${l}</button>`,
+ pill=(f,l,on)=>`<button onclick="${f}" class="px-3 py-1 rounded-full text-xs font-bold ${on?'bg-emerald-500 text-white':'bg-gray-100 text-gray-500'}">${l}</button>`;
+
+const PN={
+profile:u=>inp('f_n',t('name'),u.name)+`<label class="block text-xs text-gray-500 mb-2">${t('gender')}<select id="f_g" class="w-full border rounded-xl p-2.5 text-sm text-gray-800 mt-1 bg-white">${[['','—'],['m',t('male')],['f',t('female')],['o',t('other')]].map(([v,l])=>`<option value="${v}" ${u.gender===v?'selected':''}>${l}</option>`).join('')}</select></label>`+inp('f_d',t('dob'),u.dob,'date')+btn('saveP()',t('save')),
+priv:u=>`<div class="py-2.5"><p class="text-sm mb-2">${t('pdpa')}</p><div class="flex gap-2">${pill("upd('pdpa','in','priv')",t('accept'),u.pdpa==='in')}${pill("upd('pdpa','out','priv')",t('decline'),u.pdpa==='out')}</div></div>`};
+
+function pn(k){openM(`${XB}<h3 class="font-bold mb-3">${t(k)}</h3>`+PN[k](U()||{}))}
+
+function saveP(){
+  const user = U() || {};
+  const updatedName = $('#f_n').value.trim();
+  const updatedGender = $('#f_g').value;
+  const updatedDob = $('#f_d').value;
+  setU({ ...user, name: updatedName, gender: updatedGender, dob: updatedDob });
+  closeM(); render(); toast(t('ok'));
+}
+
+const chatAll=()=>db.get('apx_chat',{}),
+ chatUn=()=>{const u=U();return u?((chatAll()[u.contact]||{}).msgs||[]).filter(m=>m.f==='a'&&!m.r).length:0},
+ bub=m=>`<div class="flex ${m.f==='c'?'justify-end':''}"><div class="max-w-[80%] rounded-2xl px-3 py-2 text-sm ${m.f==='c'?'bg-emerald-600 text-white':'bg-gray-100'}"><p class="whitespace-pre-wrap break-words">${esc(m.t)}</p><span class="block text-[10px] mt-0.5 ${m.f==='c'?'text-emerald-100':'text-gray-400'}">${new Date(m.at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</span></div></div>`,
+ chatMsgs=()=>{const u=U();const m=(chatAll()[(u&&u.contact)||'']||{msgs:[]}).msgs;return m.length?m.map(bub).join(''):`<p class="text-center text-xs text-gray-400 py-10">${t('chatEmpty')}</p>`};
+function chatRead(){const u=U(),a=chatAll();if(!u)return;const c=a[u.contact];if(c&&c.msgs.some(m=>m.f==='a'&&!m.r)){c.msgs.forEach(m=>{if(m.f==='a')m.r=1});db.set('apx_chat',a)}}
+function chatBadge(){const n=chatUn();$('#chat').innerHTML='<i class="fa-solid fa-comments text-xl"></i>'+(n?`<b class="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] rounded-full w-5 h-5 flex items-center justify-center">${n}</b>`:'')}
+function sendC(){const u=U();if(!u)return;const i=$('#cin'),x=i.value.trim();if(!x)return;const a=chatAll(),c=a[u.contact]||(a[u.contact]={name:'',msgs:[]});c.name=u.name||u.contact;c.msgs.push({f:'c',t:x,at:Date.now(),r:0});db.set('apx_chat',a);render();const n=$('#cin');if(n&&n.focus)n.focus()}
+
+window.addEventListener('storage', e => {
+    if (e.key === 'apx_cats' && cur === 'home') {
+        render();
+    }
+});
+render();
+</script></body></html>
